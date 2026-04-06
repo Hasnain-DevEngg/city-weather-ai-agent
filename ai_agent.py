@@ -54,8 +54,9 @@ def get_weather(city: str) -> str:
     except Exception as e:
         return f"❌ Failed to fetch weather: {str(e)}"
 
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
-tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
 
 @tool
 def get_news(city: str) -> str:
