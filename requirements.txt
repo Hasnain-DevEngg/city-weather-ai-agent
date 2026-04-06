@@ -9,3 +9,4 @@ mistralai
 langchain-core
 streamlit
 langchain_text_splitters
+tavily
