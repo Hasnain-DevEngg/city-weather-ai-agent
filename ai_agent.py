@@ -149,31 +149,41 @@ if user_input:
 # ------------------- TOOL APPROVAL -------------------------
 
 if st.session_state.pending_tool:
-    tool_call = st.session_state.pending_tool
-    tool_name = tool_call["name"]
+    # Handle multiple tool calls
+    pending_tools = st.session_state.pending_tool if isinstance(st.session_state.pending_tool, list) else [st.session_state.pending_tool]
+    approved_tools = []
+    denied_tools = []
 
-    st.warning(f"⚠️ Agent wants to use tool: **{tool_name}**")
+    for idx, tool_call in enumerate(pending_tools):
+        tool_name = tool_call["name"]
+        st.warning(f"⚠️ Agent wants to use tool: **{tool_name}**")
 
-    col1, col2 = st.columns(2)
-    approve = col1.button("✅ Approve")
-    deny = col2.button("❌ Deny")
+        col1, col2 = st.columns(2)
+        approve = col1.button(f"✅ Approve {tool_name}", key=f"approve_{idx}")
+        deny = col2.button(f"❌ Deny {tool_name}", key=f"deny_{idx}")
 
-    if approve:
-        with st.spinner(f"Running {tool_name}..."):
-            tool_args = tool_call.get("args", {})
-            tool_result = tools[tool_name].invoke(tool_args)
+        if approve:
+            approved_tools.append(tool_call)
+        elif deny:
+            denied_tools.append(tool_call)
 
-        # Save tool result
-        st.session_state.messages.append(
-            ToolMessage(
-                content=tool_result,
-                tool_call_id=tool_call["id"]
+    # Run all approved tools
+    if approved_tools:
+        for tool_call in approved_tools:
+            tool_name = tool_call["name"]
+            with st.spinner(f"Running {tool_name}..."):
+                tool_args = tool_call.get("args", {})
+                tool_result = tools[tool_name].invoke(tool_args)
+
+            # Save tool result
+            st.session_state.messages.append(
+                ToolMessage(
+                    content=tool_result,
+                    tool_call_id=tool_call["id"]
+                )
             )
-        )
 
-        st.session_state.pending_tool = None
-
-        # Re-run LLM with tool result
+        # Re-run LLM with tool results
         with st.spinner("Generating response..."):
             result = llm_with_tools.invoke(st.session_state.messages)
             st.session_state.messages.append(result)
@@ -181,14 +191,16 @@ if st.session_state.pending_tool:
         with st.chat_message("assistant"):
             st.markdown(result.content)
 
-    elif deny:
-        st.session_state.pending_tool = None
+    # Handle denied tools
+    for tool_call in denied_tools:
         st.session_state.messages.append(
             ToolMessage(
-                content=f"❌ Tool call '{tool_name}' was denied by user.",
+                content=f"❌ Tool call '{tool_call['name']}' was denied by user.",
                 tool_call_id=tool_call["id"]
             )
         )
         with st.chat_message("assistant"):
-            st.markdown(f"❌ Tool call '{tool_name}' was denied by user.")
+            st.markdown(f"❌ Tool call '{tool_call['name']}' was denied by user.")
 
+    # Clear pending tools after handling
+    st.session_state.pending_tool = None
