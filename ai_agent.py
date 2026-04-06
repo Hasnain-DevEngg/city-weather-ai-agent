@@ -145,6 +145,7 @@ if user_input:
         with st.chat_message("assistant"):
             st.markdown(result.content)
 
+
 # ------------------- TOOL APPROVAL -------------------------
 
 if st.session_state.pending_tool:
@@ -154,19 +155,12 @@ if st.session_state.pending_tool:
     st.warning(f"⚠️ Agent wants to use tool: **{tool_name}**")
 
     col1, col2 = st.columns(2)
-
     approve = col1.button("✅ Approve")
     deny = col2.button("❌ Deny")
 
-    if approve or approve_tools:
+    if approve:
         with st.spinner(f"Running {tool_name}..."):
-
-            # ✅ FIXED PART (IMPORTANT)
             tool_args = tool_call.get("args", {})
-
-            # Debug (optional)
-            # st.write("DEBUG:", tool_args)
-
             tool_result = tools[tool_name].invoke(tool_args)
 
         # Save tool result
@@ -189,4 +183,12 @@ if st.session_state.pending_tool:
 
     elif deny:
         st.session_state.pending_tool = None
-        st.error("❌ Tool call denied")
+        st.session_state.messages.append(
+            ToolMessage(
+                content=f"❌ Tool call '{tool_name}' was denied by user.",
+                tool_call_id=tool_call["id"]
+            )
+        )
+        with st.chat_message("assistant"):
+            st.markdown(f"❌ Tool call '{tool_name}' was denied by user.")
+
