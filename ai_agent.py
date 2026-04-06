@@ -36,7 +36,7 @@ with st.sidebar:
 def get_weather(city: str) -> str:
     """Get current weather of a City"""
 
-    OPENWEATHER_API_KEY = "30ff83d3c82ec7c1a2705b35ad5ddc1a"
+    OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
     try:
         url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={OPENWEATHER_API_KEY}&units=metric"
